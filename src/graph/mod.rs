@@ -8,7 +8,7 @@ use input;
 use output;
 
 pub fn run() {
-    let (tx, rx): (SyncSender<BytesMut>, Receiver<BytesMut>) = mpsc::sync_channel(1000);
+    let (tx, rx): (SyncSender<BytesMut>, Receiver<BytesMut>) = mpsc::sync_channel(100000);
 
     output::kafka::poll_start(rx);
 

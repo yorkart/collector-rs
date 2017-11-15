@@ -15,12 +15,23 @@ pub fn poll_start(rx: Receiver<BytesMut>) {
         let topic = "rust-demo".to_string();
         let mut kafka_producer = KafkaProducer::new(brokers).unwrap();
 
-        rx.iter().for_each(|data| {
-//            let ss = str::from_utf8(&data).unwrap().to_string();
-//            info!("receive: {} -> ", ss);
+        loop {
+            let result = match rx.recv_timeout(Duration::new(3, 0)) {
+                Ok(data) => kafka_producer.send_batch(&topic, data),
+                Err(_) => kafka_producer.flush_batch(),
+            };
 
-            kafka_producer.send_batch(&topic, data).unwrap();
-        });
+            match result {
+                Ok(len) => info!("kafka send batch {:?}", len),
+                Err(e) => error!("kafka send batch error {:?}", e),
+            }
+        }
+//        rx.iter().for_each(|data| {
+////            let ss = str::from_utf8(&data).unwrap().to_string();
+////            info!("receive: {} -> ", ss);
+//
+//            kafka_producer.send_batch(&topic, data).unwrap();
+//        });
     });
 }
 
@@ -47,7 +58,7 @@ impl<'a> KafkaProducer<'a> {
         Ok(kafka_producer)
     }
 
-    fn send_batch(&mut self ,_topic: &'a str, data: BytesMut) -> Result<(), kafka::Error>{
+    fn send_batch(&mut self ,_topic: &'a str, data: BytesMut) -> Result<usize, kafka::Error>{
 //        let _topic = topic.clone();
 //        let _key = topic;
         let message = Record {
@@ -60,11 +71,24 @@ impl<'a> KafkaProducer<'a> {
         let queue = &mut self.queue;
         queue.push(message);
 
-        if queue.len() > 200 {
+        let len = queue.len();
+        if len >= 200 {
             self.producer.send_all(queue)?;
             queue.clear();
         }
 
-        Ok(())
+        Ok(len)
+    }
+
+    fn flush_batch(&mut self) -> Result<usize, kafka::Error>{
+        let queue = &mut self.queue;
+
+        let len = queue.len();
+        if len > 0 {
+            self.producer.send_all(queue)?;
+            queue.clear();
+        }
+
+        Ok(len)
     }
 }
