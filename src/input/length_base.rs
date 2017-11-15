@@ -185,7 +185,7 @@ impl Builder {
             length_field_is_big_endian: true,
         }
     }
-
+/*
     /// Read the length field as a big endian integer
     ///
     /// This is the default setting.
@@ -346,7 +346,7 @@ impl Builder {
         self.num_skip = Some(val);
         self
     }
-
+*/
     fn num_head_bytes(&self) -> usize {
         let num = self.length_field_offset + self.length_field_len;
         cmp::max(num, self.num_skip.unwrap_or(0))
@@ -354,23 +354,5 @@ impl Builder {
 
     fn get_num_skip(&self) -> usize {
         self.num_skip.unwrap_or(self.length_field_offset + self.length_field_len)
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    pub fn length_base_test() {
-        let mut _builder = Builder::new()
-            .length_field_offset(5)
-            .length_field_length(4)
-            .length_adjustment(0)
-            .num_skip(9)
-            .max_frame_length(1024 * 1024 * 10)
-            .little_endian();
-
-        println!("{:?}", _builder);
     }
 }

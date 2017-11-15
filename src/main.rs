@@ -27,6 +27,8 @@ extern crate httparse;
 
 extern crate time;
 
+extern crate kafka;
+
 mod input;
 mod output;
 mod graph;
@@ -44,5 +46,6 @@ fn run() {
 }
 
 fn init_log() {
-    log4rs::init_file("config/log4rs.yaml", Default::default()).unwrap();
+    log4rs::init_file("config/log4rs.yaml", Default::default())
+        .unwrap();
 }

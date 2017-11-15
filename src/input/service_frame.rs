@@ -13,13 +13,13 @@ pub struct FrameService {
     pub sender: Arc<SyncSender<BytesMut>>,
 }
 
-impl FrameService {
-    pub fn new(_sender: Arc<SyncSender<BytesMut>>) -> FrameService {
-        FrameService {
-            sender: _sender,
-        }
-    }
-}
+//impl FrameService {
+//    pub fn new(_sender: Arc<SyncSender<BytesMut>>) -> FrameService {
+//        FrameService {
+//            sender: _sender,
+//        }
+//    }
+//}
 
 impl Service for FrameService {
     // These types must match the corresponding protocol types:
@@ -36,7 +36,7 @@ impl Service for FrameService {
     fn call(&self, req: Self::Request) -> Self::Future {
         info!("request data size: {} -> ", req.len());
 
-        self.sender.send(req);
+        self.sender.send(req).unwrap();
 
         // In this case, the response is immediate.
         Box::new(future::ok("ok".to_string()))

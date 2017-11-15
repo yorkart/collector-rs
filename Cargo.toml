@@ -32,3 +32,5 @@ http = "0.1"
 httparse = "1.0"
 
 time = "0.1"
+
+kafka = "0.7"
