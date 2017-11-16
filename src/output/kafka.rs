@@ -1,5 +1,7 @@
 use std::str;
+use std::sync::mpsc;
 use std::sync::mpsc::Receiver;
+use std::sync::mpsc::RecvTimeoutError;
 use std::thread;
 use std::time::Duration;
 
@@ -12,23 +14,58 @@ use kafka::producer::{Producer, Record};
 pub fn poll_start(rx: Receiver<BytesMut>) {
     thread::Builder::new()
         .name("kafka-output".to_string())
-        .spawn(move || {
-            let brokers = vec!["10.100.49.2:9092".to_owned()];
-            let topic = "rust-demo".to_string();
-            let mut kafka_producer = KafkaProducer::new(brokers).unwrap();
-
-            loop {
-                let result = match rx.recv_timeout(Duration::new(3, 0)) {
-                    Ok(data) => kafka_producer.send_batch(&topic, data),
-                    Err(_) => kafka_producer.flush_batch(),
-                };
-
-                match result {
-                    Ok(len) => info!("kafka send batch {:?} / {}", len, kafka_producer.get_counter()),
-                    Err(e) => error!("kafka send batch error {:?}", e),
-                }
-            }
+        .spawn( move || {
+            poll_with_multi_worker(rx, 5);
         }).unwrap();
+}
+
+fn poll_with_multi_worker(rx :Receiver<BytesMut>, num_threads: i32) {
+    let recv_timeout_sec = 3;
+
+    let mut channels = Vec::new();
+    for n in 0..num_threads {
+        let (worker_tx, worker_rx) = mpsc::channel();
+        channels.push(worker_tx);
+        thread::Builder::new()
+            .name(format!("kafka-worker-{}", n).to_string())
+            .spawn(move || worker(worker_rx)).unwrap();
+    }
+
+    let mut channel_index = 0;
+    loop {
+        let rt = rx.recv_timeout(Duration::new(recv_timeout_sec, 0));
+
+        let index = if channel_index < num_threads {
+            channel_index as usize
+        } else {
+            channel_index = 0;
+            channel_index as usize
+        };
+
+        let worker_tx = &channels[index];
+        worker_tx.send(rt).unwrap();
+
+        channel_index = channel_index + 1;
+    }
+}
+
+fn worker(rx : mpsc::Receiver<Result<BytesMut, RecvTimeoutError>>) {
+    let brokers = vec!["10.100.49.2:9092".to_owned()];
+    let topic = "rust-demo".to_string();
+    let mut kafka_producer = KafkaProducer::new(brokers).unwrap();
+
+    loop {
+        let rt = rx.recv().unwrap();
+        let result = match rt {
+            Ok(data) => kafka_producer.send_batch(&topic, data),
+            Err(_) => kafka_producer.flush_batch(),
+        };
+
+        match result {
+            Ok(len) => info!("kafka send batch {:?} / {}", len, kafka_producer.get_counter()),
+            Err(e) => error!("kafka send batch error {:?}", e),
+        }
+    }
 }
 
 struct KafkaProducer<'a> {
@@ -46,7 +83,7 @@ impl<'a> KafkaProducer<'a> {
             .with_compression(Compression::SNAPPY)
             .create()?;
 
-        let _capacity = 500;
+        let _capacity = 10;
         let _queue = Vec::with_capacity(_capacity);
 
         let kafka_producer = KafkaProducer {
