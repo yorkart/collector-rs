@@ -16,7 +16,8 @@ pub fn serve_frame(tx: SyncSender<BytesMut>) {
     let proto = FrameProto;// { codec_builder: builder };
 
     // The builder requires a protocol and an address
-    let server = TcpServer::new(proto, addr);
+    let mut server = TcpServer::new(proto, addr);
+    server.threads(5);
 
     let pair: Arc<SyncSender<BytesMut>> = Arc::new(tx);
     let frame_new_service = FrameNewService {
