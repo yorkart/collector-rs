@@ -28,6 +28,7 @@ extern crate httparse;
 extern crate time;
 
 extern crate kafka;
+extern crate rdkafka;
 
 mod input;
 mod output;

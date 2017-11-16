@@ -8,7 +8,7 @@ use std::time::Duration;
 
 use bytes::BytesMut;
 
-pub mod kafka;
+//pub mod kafka;
 pub mod rdkafka;
 
 pub fn poll_start(rx: Receiver<BytesMut>) {
@@ -28,7 +28,7 @@ fn poll_with_multi_worker(rx :Receiver<BytesMut>, num_threads: i32) {
         channels.push(worker_tx);
         thread::Builder::new()
             .name(format!("kafka-worker-{}", n).to_string())
-            .spawn(move || kafka::worker(worker_rx)).unwrap();
+            .spawn(move || rdkafka::worker(worker_rx)).unwrap();
     }
 
     let mut channel_index = 0;
