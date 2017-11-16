@@ -10,6 +10,7 @@ use rdkafka::producer::FutureProducer;
 use rdkafka::producer::future_producer::DeliveryFuture;
 
 use core;
+use utils;
 
 pub fn worker(rx: mpsc::Receiver<Result<core::Event, RecvTimeoutError>>) {
     let brokers = "10.100.49.2:9092,10.100.49.3:9092,10.100.49.4:9092";
@@ -68,7 +69,7 @@ impl RDKafkaProducer {
             None,
             Some(&data.to_vec()),
             Some(&key.to_owned()),
-            None,
+            Some(utils::get_mills(event.time_spec)),
             0);
 
         let mut flush = false;
