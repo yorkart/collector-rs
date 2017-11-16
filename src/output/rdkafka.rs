@@ -12,7 +12,7 @@ use rdkafka::producer::FutureProducer;
 use rdkafka::producer::future_producer::DeliveryFuture;
 
 pub fn worker(rx: mpsc::Receiver<Result<BytesMut, RecvTimeoutError>>) {
-    let brokers = "10.100.49.2:9092";
+    let brokers = "10.100.49.2:9092,10.100.49.3:9092,10.100.49.4:9092";
     let topic = "rust-demo".to_string();
     let key = "key".to_owned();
 
@@ -44,6 +44,9 @@ impl RDKafkaProducer {
         let mut _producer = ClientConfig::new()
             .set("bootstrap.servers", brokers)
             .set("produce.offset.report", "true")
+            .set("request.required.acks", "-1")
+            .set("compression.codec", "snappy")
+            .set("message.max.bytes", "9437184")
             .create::<FutureProducer<_>>()
             .expect("Producer creation error");
 
@@ -79,7 +82,7 @@ impl RDKafkaProducer {
                 for mut df in queue {
                     let delivery_status = df.wait().unwrap();
                     match delivery_status {
-                        Ok((_, _)) => info!("send success"),
+                        Ok((_, _)) => {},
                         Err((err, msg)) => error!("send error: {:?}, message: {:?}", err, msg),
                     }
                 }

@@ -7,6 +7,8 @@ use bytes::BytesMut;
 
 use futures::{future, Future};
 
+use time;
+
 use tokio_service::{Service, NewService};
 
 pub struct FrameService {
@@ -27,7 +29,9 @@ impl Service for FrameService {
     // Produce a future for computing a response from a request.
     fn call(&self, req: Self::Request) -> Self::Future {
 //        info!("request data size: {} -> ", req.len());
-
+        let ts = time::get_time();
+        let mills = ts.sec + ts.nsec as i64 / (1000 * 1000);
+        info!("timestamp: {}", mills);
         self.sender.send(req).unwrap();
 
         // In this case, the response is immediate.
