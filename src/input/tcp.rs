@@ -2,14 +2,14 @@
 use std::sync::Arc;
 use std::sync::mpsc::SyncSender;
 
-use bytes::BytesMut;
-
 use tokio_proto::TcpServer;
 
 use super::proto_frame::FrameProto;
 use super::service_frame::FrameNewService;
 
-pub fn serve_frame(tx: SyncSender<BytesMut>) {
+use core;
+
+pub fn serve_frame(tx: SyncSender<core::Event>) {
     // Specify the localhost address
     let addr = "0.0.0.0:9019".parse().unwrap();
 
@@ -19,7 +19,7 @@ pub fn serve_frame(tx: SyncSender<BytesMut>) {
     let mut server = TcpServer::new(proto, addr);
     server.threads(5);
 
-    let pair: Arc<SyncSender<BytesMut>> = Arc::new(tx);
+    let pair: Arc<SyncSender<core::Event>> = Arc::new(tx);
     let frame_new_service = FrameNewService {
         sender: pair,
     };

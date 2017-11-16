@@ -6,12 +6,13 @@ use std::sync::mpsc::Receiver;
 use std::thread;
 use std::time::Duration;
 
-use bytes::BytesMut;
+use core;
 
 //pub mod kafka;
 pub mod rdkafka;
 
-pub fn poll_start(rx: Receiver<BytesMut>) {
+
+pub fn poll_start(rx: Receiver<core::Event>) {
     thread::Builder::new()
         .name("kafka-output".to_string())
         .spawn( move || {
@@ -19,7 +20,7 @@ pub fn poll_start(rx: Receiver<BytesMut>) {
         }).unwrap();
 }
 
-fn poll_with_multi_worker(rx :Receiver<BytesMut>, num_threads: i32) {
+fn poll_with_multi_worker(rx :Receiver<core::Event>, num_threads: i32) {
     let recv_timeout_sec = 3;
 
     let mut channels = Vec::new();

@@ -2,13 +2,12 @@
 use std::sync::mpsc;
 use std::sync::mpsc::{SyncSender, Receiver};
 
-use bytes::BytesMut;
-
+use core;
 use input;
 use output;
 
 pub fn run() {
-    let (tx, rx): (SyncSender<BytesMut>, Receiver<BytesMut>) = mpsc::sync_channel(100000);
+    let (tx, rx): (SyncSender<core::Event>, Receiver<core::Event>) = mpsc::sync_channel(100000);
 
     output::poll_start(rx);
 

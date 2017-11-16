@@ -11,8 +11,10 @@ use time;
 
 use tokio_service::{Service, NewService};
 
+use core;
+
 pub struct FrameService {
-    pub sender: Arc<SyncSender<BytesMut>>,
+    pub sender: Arc<SyncSender<core::Event>>,
 }
 
 impl Service for FrameService {
@@ -32,7 +34,13 @@ impl Service for FrameService {
         let ts = time::get_time();
         let mills = ts.sec + ts.nsec as i64 / (1000 * 1000);
         info!("timestamp: {}", mills);
-        self.sender.send(req).unwrap();
+
+        let event = core::Event {
+            peer_addr: "".to_owned(),
+            time_spec : ts,
+            data: req,
+        };
+        self.sender.send(event).unwrap();
 
         // In this case, the response is immediate.
         Box::new(future::ok("".to_string()))
@@ -40,7 +48,7 @@ impl Service for FrameService {
 }
 
 pub struct FrameNewService {
-    pub sender: Arc<SyncSender<BytesMut>>,
+    pub sender: Arc<SyncSender<core::Event>>,
 }
 
 impl NewService for FrameNewService {

@@ -30,6 +30,7 @@ extern crate time;
 extern crate kafka;
 extern crate rdkafka;
 
+mod core;
 mod input;
 mod output;
 mod graph;

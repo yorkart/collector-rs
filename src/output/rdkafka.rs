@@ -1,8 +1,6 @@
 use std::sync::mpsc;
 use std::sync::mpsc::RecvTimeoutError;
 
-use bytes::BytesMut;
-
 use futures::Future;
 
 use rdkafka::error::KafkaError;
@@ -11,7 +9,9 @@ use rdkafka::config::ClientConfig;
 use rdkafka::producer::FutureProducer;
 use rdkafka::producer::future_producer::DeliveryFuture;
 
-pub fn worker(rx: mpsc::Receiver<Result<BytesMut, RecvTimeoutError>>) {
+use core;
+
+pub fn worker(rx: mpsc::Receiver<Result<core::Event, RecvTimeoutError>>) {
     let brokers = "10.100.49.2:9092,10.100.49.3:9092,10.100.49.4:9092";
     let topic = "rust-demo".to_string();
     let key = "key".to_owned();
@@ -21,7 +21,7 @@ pub fn worker(rx: mpsc::Receiver<Result<BytesMut, RecvTimeoutError>>) {
     loop {
         let rt = rx.recv().unwrap();
         let result = match rt {
-            Ok(data) => kafka_producer.send_batch(&topic, &key, data),
+            Ok(event) => kafka_producer.send_batch(&topic, &key, event),
             Err(_) => kafka_producer.flush_batch(),
         };
 
@@ -61,7 +61,8 @@ impl RDKafkaProducer {
         }
     }
 
-    fn send_batch(&mut self, topic: &str, key: &str, data: BytesMut) -> Result<usize, KafkaError> {
+    fn send_batch(&mut self, topic: &str, key: &str, event: core::Event) -> Result<usize, KafkaError> {
+        let data = event.data;
         let delivery_future = self.producer.send_copy(
             &topic.to_owned(),
             None,
@@ -79,7 +80,7 @@ impl RDKafkaProducer {
             len = queue.len();
 
             if len >= self.capacity {
-                for mut df in queue {
+                for df in queue {
                     let delivery_status = df.wait().unwrap();
                     match delivery_status {
                         Ok((_, _)) => {},
@@ -105,7 +106,7 @@ impl RDKafkaProducer {
         {
             let queue = &mut self.queue;
             len = queue.len();
-            for mut df in queue {
+            for df in queue {
                 let delivery_status = df.wait().unwrap();
                 match delivery_status {
                     Ok((_, _)) => {}
