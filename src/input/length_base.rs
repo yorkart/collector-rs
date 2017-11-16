@@ -1,4 +1,3 @@
-//#![deny(warnings)]
 
 use bytes::{Buf, BytesMut, BigEndian, LittleEndian};
 
