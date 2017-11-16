@@ -1,6 +1,6 @@
 
 use std::io;
-use std::sync::mpsc::*;
+use std::sync::mpsc::SyncSender;
 use std::sync::Arc;
 
 use bytes::BytesMut;
