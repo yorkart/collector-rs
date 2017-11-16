@@ -1,9 +1,10 @@
 
-tcp.workers: 5
+tcp.threads: 5
 output.workers: 5
 
 
 kafka:
-  brokers: ""
-  compression: ""
+  brokers: "10.100.49.2:9092,10.100.49.3:9092,10.100.49.4:9092"
+  compression.codec: "snappy"
+  message.max.bytes: 9437184
 
