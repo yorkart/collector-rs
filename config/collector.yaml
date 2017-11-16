@@ -1,0 +1,9 @@
+
+tcp.workers: 5
+output.workers: 5
+
+
+kafka:
+  brokers: ""
+  compression: ""
+

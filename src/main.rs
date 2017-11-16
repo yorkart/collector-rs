@@ -31,6 +31,7 @@ extern crate kafka;
 extern crate rdkafka;
 
 mod core;
+mod config;
 mod utils;
 mod input;
 mod output;
