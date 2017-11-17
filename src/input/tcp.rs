@@ -9,7 +9,7 @@ use super::service_frame::FrameNewService;
 
 use core;
 
-pub fn serve_frame(tx: SyncSender<core::Event>) {
+pub fn serve_frame(tx: SyncSender<core::Event>, config_center: &Arc<core::config::ConfigCenter>) {
     // Specify the localhost address
     let addr = "0.0.0.0:9019".parse().unwrap();
 
@@ -17,7 +17,7 @@ pub fn serve_frame(tx: SyncSender<core::Event>) {
 
     // The builder requires a protocol and an address
     let mut server = TcpServer::new(proto, addr);
-    server.threads(5);
+    server.threads(config_center.get().tcp_threads);
 
     let pair: Arc<SyncSender<core::Event>> = Arc::new(tx);
     let frame_new_service = FrameNewService {

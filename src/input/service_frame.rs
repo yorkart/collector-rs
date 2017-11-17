@@ -3,8 +3,6 @@ use std::io;
 use std::sync::mpsc::SyncSender;
 use std::sync::Arc;
 
-use bytes::BytesMut;
-
 use futures::{future, Future};
 
 use time;
@@ -12,6 +10,7 @@ use time;
 use tokio_service::{Service, NewService};
 
 use core;
+use super::codec_frame::DataPackage;
 
 pub struct FrameService {
     pub sender: Arc<SyncSender<core::Event>>,
@@ -19,7 +18,7 @@ pub struct FrameService {
 
 impl Service for FrameService {
     // These types must match the corresponding protocol types:
-    type Request = BytesMut;
+    type Request = DataPackage;
     type Response = String;
 
     // For non-streaming protocols, service errors are always io::Error
@@ -31,14 +30,10 @@ impl Service for FrameService {
     // Produce a future for computing a response from a request.
     fn call(&self, req: Self::Request) -> Self::Future {
 //        info!("request data size: {} -> ", req.len());
-        let ts = time::get_time();
-        let mills = ts.sec + ts.nsec as i64 / (1000 * 1000);
-        info!("timestamp: {}", mills);
-
         let event = core::Event {
-            peer_addr: "".to_owned(),
-            time_spec : ts,
-            data: req,
+            peer_addr: req.peer_addr.ip().to_string(),
+            time_spec : time::get_time(),
+            data: req.data,
         };
         self.sender.send(event).unwrap();
 
@@ -52,7 +47,7 @@ pub struct FrameNewService {
 }
 
 impl NewService for FrameNewService {
-    type Request = BytesMut;
+    type Request = DataPackage;
     type Response = String;
     type Error = io::Error;
     type Instance = FrameService;

@@ -43,13 +43,26 @@ fn main() {
 
 fn run() {
     init_log();
+    let config_center = match init_config() {
+        Ok(t) => t,
+        Err(e) => {
+            error!("read config error {}", e);
+            return
+        },
+    };
 
     info!("============collector starting============");
 
-    graph::run();
+    graph::run(config_center);
 }
 
 fn init_log() {
     log4rs::init_file("config/log4rs.yaml", Default::default())
         .unwrap();
+}
+
+fn init_config() -> Result<core::config::ConfigCenter, config::ConfigError> {
+    let config = config::read_config_from_path("config/collector.yaml")?;
+    let config_center = core::config::ConfigCenter::new(config);
+    Ok(config_center)
 }
