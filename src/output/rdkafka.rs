@@ -73,7 +73,7 @@ impl RDKafkaProducer {
         let mut header = data.split_to(9);
 
         header.split_to(4); // message_id
-        let type_buf = header.slice(1);
+        let type_buf = header.split_to(1);
 
         let data_type = BigEndian::read_i32(type_buf.as_ref());
 
