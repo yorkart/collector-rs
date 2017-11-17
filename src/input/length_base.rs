@@ -178,7 +178,7 @@ impl Builder {
 
             // Total number of bytes to skip before reading the payload, if not set,
             // `length_field_len + length_field_offset`
-            num_skip: None,
+            num_skip: Some(0), // None,
 
             // Default to reading the length field in network (big) endian.
             length_field_is_big_endian: true,

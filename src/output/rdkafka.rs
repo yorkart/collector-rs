@@ -72,13 +72,14 @@ impl RDKafkaProducer {
 
         let mut header = data.split_to(9);
 
-        header.split_to(4); // message_id
+        let message_id_buf = header.split_to(4);
         let type_buf = header.split_to(1);
 
-        let data_type = BigEndian::read_i32(type_buf.as_ref());
+        let message_id = BigEndian::read_i32(message_id_buf.as_ref());
+        let data_type = type_buf.as_ref().to_vec()[0] as i32;
 
         let key = format!("{}#{}#{}#{}", mills, 5, &event.peer_addr, data_type);
-        info!("event key: {}", &key);
+        info!("event key: {}, messageId: {}", &key, message_id);
 
         let delivery_future = self.producer.send_copy(
             &topic.to_owned(),
