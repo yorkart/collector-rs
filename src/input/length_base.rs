@@ -1,4 +1,3 @@
-
 use bytes::{Buf, BytesMut, BigEndian, LittleEndian};
 
 use std::cmp;
@@ -87,17 +86,13 @@ impl Decoder {
             }
         };
 
-        let num_skip = self.builder.get_num_skip();
-
-        if num_skip > 0 {
-            let _ = src.split_to(num_skip);
-        }
+        let package_size = self.builder.num_head_bytes() + n;
 
         // Ensure that the buffer has enough space to read the incoming
         // payload
-        src.reserve(n);
+        src.reserve(package_size);
 
-        return Ok(Some(n));
+        return Ok(Some(package_size));
     }
 
     fn decode_data(&self, n: usize, src: &mut BytesMut) -> io::Result<Option<BytesMut>> {
@@ -130,13 +125,18 @@ impl codec::Decoder for Decoder {
         };
 
         match try!(self.decode_data(n, src)) {
-            Some(data) => {
+            Some(mut data) => {
                 // Update the decode state
                 self.state = DecodeState::Head;
 
                 // Make sure the buffer has enough space to read the next head
                 src.reserve(self.builder.num_head_bytes());
 
+                let num_skip = self.builder.get_num_skip();
+
+                if num_skip > 0 {
+                    let _ = data.split_to(num_skip);
+                }
                 Ok(Some(data))
             }
             None => Ok(None),
@@ -178,174 +178,175 @@ impl Builder {
 
             // Total number of bytes to skip before reading the payload, if not set,
             // `length_field_len + length_field_offset`
-            num_skip: Some(0), // None,
+            num_skip: Some(0),
+            // None,
 
             // Default to reading the length field in network (big) endian.
             length_field_is_big_endian: true,
         }
     }
-/*
-    /// Read the length field as a big endian integer
-    ///
-    /// This is the default setting.
-    ///
-    /// This configuration option applies to both encoding and decoding.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # use tokio_io::AsyncRead;
-    /// use tokio_io::codec::length_delimited::Builder;
-    ///
-    /// # fn bind_read<T: AsyncRead>(io: T) {
-    /// Builder::new()
-    ///     .big_endian()
-    ///     .new_read(io);
-    /// # }
-    /// ```
-    pub fn big_endian(&mut self) -> &mut Self {
-        self.length_field_is_big_endian = true;
-        self
-    }
+    /*
+        /// Read the length field as a big endian integer
+        ///
+        /// This is the default setting.
+        ///
+        /// This configuration option applies to both encoding and decoding.
+        ///
+        /// # Examples
+        ///
+        /// ```
+        /// # use tokio_io::AsyncRead;
+        /// use tokio_io::codec::length_delimited::Builder;
+        ///
+        /// # fn bind_read<T: AsyncRead>(io: T) {
+        /// Builder::new()
+        ///     .big_endian()
+        ///     .new_read(io);
+        /// # }
+        /// ```
+        pub fn big_endian(&mut self) -> &mut Self {
+            self.length_field_is_big_endian = true;
+            self
+        }
 
-    /// Read the length field as a little endian integer
-    ///
-    /// The default setting is big endian.
-    ///
-    /// This configuration option applies to both encoding and decoding.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # use tokio_io::AsyncRead;
-    /// use tokio_io::codec::length_delimited::Builder;
-    ///
-    /// # fn bind_read<T: AsyncRead>(io: T) {
-    /// Builder::new()
-    ///     .little_endian()
-    ///     .new_read(io);
-    /// # }
-    /// ```
-    pub fn little_endian(&mut self) -> &mut Self {
-        self.length_field_is_big_endian = false;
-        self
-    }
+        /// Read the length field as a little endian integer
+        ///
+        /// The default setting is big endian.
+        ///
+        /// This configuration option applies to both encoding and decoding.
+        ///
+        /// # Examples
+        ///
+        /// ```
+        /// # use tokio_io::AsyncRead;
+        /// use tokio_io::codec::length_delimited::Builder;
+        ///
+        /// # fn bind_read<T: AsyncRead>(io: T) {
+        /// Builder::new()
+        ///     .little_endian()
+        ///     .new_read(io);
+        /// # }
+        /// ```
+        pub fn little_endian(&mut self) -> &mut Self {
+            self.length_field_is_big_endian = false;
+            self
+        }
 
-    /// Sets the max frame length
-    ///
-    /// This configuration option applies to both encoding and decoding. The
-    /// default value is 8MB.
-    ///
-    /// When decoding, the length field read from the byte stream is checked
-    /// against this setting **before** any adjustments are applied. When
-    /// encoding, the length of the submitted payload is checked against this
-    /// setting.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # use tokio_io::AsyncRead;
-    /// use tokio_io::codec::length_delimited::Builder;
-    ///
-    /// # fn bind_read<T: AsyncRead>(io: T) {
-    /// Builder::new()
-    ///     .max_frame_length(8 * 1024)
-    ///     .new_read(io);
-    /// # }
-    /// ```
-    pub fn max_frame_length(&mut self, val: usize) -> &mut Self {
-        self.max_frame_len = val;
-        self
-    }
+        /// Sets the max frame length
+        ///
+        /// This configuration option applies to both encoding and decoding. The
+        /// default value is 8MB.
+        ///
+        /// When decoding, the length field read from the byte stream is checked
+        /// against this setting **before** any adjustments are applied. When
+        /// encoding, the length of the submitted payload is checked against this
+        /// setting.
+        ///
+        /// # Examples
+        ///
+        /// ```
+        /// # use tokio_io::AsyncRead;
+        /// use tokio_io::codec::length_delimited::Builder;
+        ///
+        /// # fn bind_read<T: AsyncRead>(io: T) {
+        /// Builder::new()
+        ///     .max_frame_length(8 * 1024)
+        ///     .new_read(io);
+        /// # }
+        /// ```
+        pub fn max_frame_length(&mut self, val: usize) -> &mut Self {
+            self.max_frame_len = val;
+            self
+        }
 
-    /// Sets the number of bytes used to represent the length field
-    ///
-    /// The default value is `4`. The max value is `8`.
-    ///
-    /// This configuration option applies to both encoding and decoding.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # use tokio_io::AsyncRead;
-    /// use tokio_io::codec::length_delimited::Builder;
-    ///
-    /// # fn bind_read<T: AsyncRead>(io: T) {
-    /// Builder::new()
-    ///     .length_field_length(4)
-    ///     .new_read(io);
-    /// # }
-    /// ```
-    pub fn length_field_length(&mut self, val: usize) -> &mut Self {
-        assert!(val > 0 && val <= 8, "invalid length field length");
-        self.length_field_len = val;
-        self
-    }
+        /// Sets the number of bytes used to represent the length field
+        ///
+        /// The default value is `4`. The max value is `8`.
+        ///
+        /// This configuration option applies to both encoding and decoding.
+        ///
+        /// # Examples
+        ///
+        /// ```
+        /// # use tokio_io::AsyncRead;
+        /// use tokio_io::codec::length_delimited::Builder;
+        ///
+        /// # fn bind_read<T: AsyncRead>(io: T) {
+        /// Builder::new()
+        ///     .length_field_length(4)
+        ///     .new_read(io);
+        /// # }
+        /// ```
+        pub fn length_field_length(&mut self, val: usize) -> &mut Self {
+            assert!(val > 0 && val <= 8, "invalid length field length");
+            self.length_field_len = val;
+            self
+        }
 
-    /// Sets the number of bytes in the header before the length field
-    ///
-    /// This configuration option only applies to decoding.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # use tokio_io::AsyncRead;
-    /// use tokio_io::codec::length_delimited::Builder;
-    ///
-    /// # fn bind_read<T: AsyncRead>(io: T) {
-    /// Builder::new()
-    ///     .length_field_offset(1)
-    ///     .new_read(io);
-    /// # }
-    /// ```
-    pub fn length_field_offset(&mut self, val: usize) -> &mut Self {
-        self.length_field_offset = val;
-        self
-    }
+        /// Sets the number of bytes in the header before the length field
+        ///
+        /// This configuration option only applies to decoding.
+        ///
+        /// # Examples
+        ///
+        /// ```
+        /// # use tokio_io::AsyncRead;
+        /// use tokio_io::codec::length_delimited::Builder;
+        ///
+        /// # fn bind_read<T: AsyncRead>(io: T) {
+        /// Builder::new()
+        ///     .length_field_offset(1)
+        ///     .new_read(io);
+        /// # }
+        /// ```
+        pub fn length_field_offset(&mut self, val: usize) -> &mut Self {
+            self.length_field_offset = val;
+            self
+        }
 
-    /// Delta between the payload length specified in the header and the real
-    /// payload length
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # use tokio_io::AsyncRead;
-    /// use tokio_io::codec::length_delimited::Builder;
-    ///
-    /// # fn bind_read<T: AsyncRead>(io: T) {
-    /// Builder::new()
-    ///     .length_adjustment(-2)
-    ///     .new_read(io);
-    /// # }
-    /// ```
-    pub fn length_adjustment(&mut self, val: isize) -> &mut Self {
-        self.length_adjustment = val;
-        self
-    }
+        /// Delta between the payload length specified in the header and the real
+        /// payload length
+        ///
+        /// # Examples
+        ///
+        /// ```
+        /// # use tokio_io::AsyncRead;
+        /// use tokio_io::codec::length_delimited::Builder;
+        ///
+        /// # fn bind_read<T: AsyncRead>(io: T) {
+        /// Builder::new()
+        ///     .length_adjustment(-2)
+        ///     .new_read(io);
+        /// # }
+        /// ```
+        pub fn length_adjustment(&mut self, val: isize) -> &mut Self {
+            self.length_adjustment = val;
+            self
+        }
 
-    /// Sets the number of bytes to skip before reading the payload
-    ///
-    /// Default value is `length_field_len + length_field_offset`
-    ///
-    /// This configuration option only applies to decoding
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # use tokio_io::AsyncRead;
-    /// use tokio_io::codec::length_delimited::Builder;
-    ///
-    /// # fn bind_read<T: AsyncRead>(io: T) {
-    /// Builder::new()
-    ///     .num_skip(4)
-    ///     .new_read(io);
-    /// # }
-    /// ```
-    pub fn num_skip(&mut self, val: usize) -> &mut Self {
-        self.num_skip = Some(val);
-        self
-    }
-*/
+        /// Sets the number of bytes to skip before reading the payload
+        ///
+        /// Default value is `length_field_len + length_field_offset`
+        ///
+        /// This configuration option only applies to decoding
+        ///
+        /// # Examples
+        ///
+        /// ```
+        /// # use tokio_io::AsyncRead;
+        /// use tokio_io::codec::length_delimited::Builder;
+        ///
+        /// # fn bind_read<T: AsyncRead>(io: T) {
+        /// Builder::new()
+        ///     .num_skip(4)
+        ///     .new_read(io);
+        /// # }
+        /// ```
+        pub fn num_skip(&mut self, val: usize) -> &mut Self {
+            self.num_skip = Some(val);
+            self
+        }
+    */
     fn num_head_bytes(&self) -> usize {
         let num = self.length_field_offset + self.length_field_len;
         cmp::max(num, self.num_skip.unwrap_or(0))
