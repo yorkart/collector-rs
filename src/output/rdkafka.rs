@@ -16,17 +16,17 @@ use rdkafka::producer::future_producer::DeliveryFuture;
 
 use core;
 use utils;
+use super::common::PackageTypeMap;
 
 pub fn worker(rx: mpsc::Receiver<Result<core::Event, RecvTimeoutError>>, config_center: Arc<core::config::ConfigCenter>) {
     let config = config_center.get();
-    let topic = config.kafka.topic.clone();
 
     let mut kafka_producer = RDKafkaProducer::new(config.kafka);
 
     loop {
         let rt = rx.recv().unwrap();
         let result = match rt {
-            Ok(event) => kafka_producer.send_batch(&topic, event),
+            Ok(event) => kafka_producer.send_batch(event),
             Err(_) => kafka_producer.flush_batch(),
         };
 
@@ -37,15 +37,16 @@ pub fn worker(rx: mpsc::Receiver<Result<core::Event, RecvTimeoutError>>, config_
     }
 }
 
-struct RDKafkaProducer {
+struct RDKafkaProducer<'a> {
     producer: FutureProducer<EmptyContext>,
     queue: Vec<DeliveryFuture>,
     capacity: usize,
     counter: usize,
+    package_type_map_topic: PackageTypeMap<'a>,
 }
 
-impl RDKafkaProducer {
-    fn new(config: core::config::KafkaConfig) -> RDKafkaProducer {
+impl <'a> RDKafkaProducer<'a> {
+    fn new(config: core::config::KafkaConfig) -> RDKafkaProducer<'a> {
         let mut _producer = ClientConfig::new()
             .set("bootstrap.servers", &config.brokers)
             .set("produce.offset.report", "true")
@@ -63,10 +64,11 @@ impl RDKafkaProducer {
             queue: _queue,
             capacity: _capacity,
             counter: 0,
+            package_type_map_topic: PackageTypeMap::new(),
         }
     }
 
-    fn send_batch(&mut self, topic: &str, event: core::Event) -> Result<usize, KafkaError> {
+    fn send_batch(&mut self, event: core::Event) -> Result<usize, KafkaError> {
         let mut data = event.data;
         let mills = utils::get_mills(event.time_spec);
 
@@ -76,13 +78,15 @@ impl RDKafkaProducer {
         let type_buf = header.split_to(1);
 
         let message_id = BigEndian::read_i32(message_id_buf.as_ref());
-        let data_type = type_buf.as_ref().to_vec()[0] as i32;
+        let data_type = type_buf.as_ref().to_vec()[0] as usize;
 
         let key = format!("{}#{}#{}#{}", mills, 5, &event.peer_addr, data_type);
         info!("event key: {}, messageId: {}", &key, message_id);
 
+        let _topic = self.package_type_map_topic.get_topic(data_type);
+
         let delivery_future = self.producer.send_copy(
-            &topic.to_owned(),
+            &_topic.to_owned(),
             None,
             Some(&data.to_vec()),
             Some(&key),

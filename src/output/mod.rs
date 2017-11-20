@@ -8,6 +8,7 @@ use std::time::Duration;
 
 use core;
 
+pub mod common;
 //pub mod kafka;
 pub mod rdkafka;
 
