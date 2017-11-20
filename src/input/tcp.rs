@@ -11,7 +11,7 @@ use core;
 
 pub fn serve_frame(tx: SyncSender<core::Event>, config_center: &Arc<core::config::ConfigCenter>) {
     // Specify the localhost address
-    let addr = "0.0.0.0:9019".parse().unwrap();
+    let addr = "0.0.0.0:36366".parse().unwrap();
 
     let proto = FrameProto;// { codec_builder: builder };
 

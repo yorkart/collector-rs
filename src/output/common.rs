@@ -23,8 +23,8 @@ pub struct PackageTypeMap<'a> {
 
 impl <'a> PackageTypeMap<'a> {
     pub fn new() -> PackageTypeMap<'a> {
-        let mut package_type_vec = Vec::with_capacity(127);
-        (0..127).for_each(|_| package_type_vec.push(""));
+        let mut package_type_vec = Vec::with_capacity(128);
+        (0..128).for_each(|_| package_type_vec.push(""));
 
         package_type_vec[AGENT_INFO] = "apm-agent-info";
         package_type_vec[AGENT_INFO_V2] = "apm-agent-info";
@@ -44,6 +44,9 @@ impl <'a> PackageTypeMap<'a> {
     }
 
     pub fn get_topic(&self, package_type: usize) ->&str {
+        if package_type > 127 {
+            return "rust-demo"
+        }
         self.map[package_type]
     }
 }

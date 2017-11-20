@@ -31,7 +31,7 @@ pub fn worker(rx: mpsc::Receiver<Result<core::Event, RecvTimeoutError>>, config_
         };
 
         match result {
-            Ok(len) => info!("kafka send batch {:?} / {}", len, kafka_producer.get_counter()),
+            Ok(len) => {}, // info!("kafka send batch {:?} / {}", len, kafka_producer.get_counter()),
             Err(e) => error!("kafka send batch error {:?}", e),
         }
     }
@@ -81,9 +81,10 @@ impl <'a> RDKafkaProducer<'a> {
         let data_type = type_buf.as_ref().to_vec()[0] as usize;
 
         let key = format!("{}#{}#{}#{}", mills, 5, &event.peer_addr, data_type);
-        info!("event key: {}, messageId: {}", &key, message_id);
+//        info!("event key: {}, messageId: {}", &key, message_id);
 
         let _topic = self.package_type_map_topic.get_topic(data_type);
+//        info!("event topic: {}, data_type: {}", _topic, data_type);
 
         let delivery_future = self.producer.send_copy(
             &_topic.to_owned(),
