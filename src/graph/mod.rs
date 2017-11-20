@@ -13,5 +13,6 @@ pub fn run(config_center : core::config::ConfigCenter) {
     let arc_config_center = Arc::new(config_center);
     output::poll_start(rx, &arc_config_center);
 
+    input::udp_serve(tx.clone());
     input::tcp::serve_frame(tx.clone(), &arc_config_center);
 }

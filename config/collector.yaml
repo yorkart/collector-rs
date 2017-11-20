@@ -6,6 +6,7 @@ tcp.threads: 5
 output.workers: 5
 
 kafka:
+  batch.size: 100
   topic: "rust-demo"
   brokers: "10.100.49.2:9092,10.100.49.3:9092,10.100.49.4:9092"
   compression.codec: "snappy"

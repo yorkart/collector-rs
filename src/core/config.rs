@@ -14,6 +14,8 @@ pub struct Config {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct KafkaConfig {
+    #[serde(rename="batch.size")]
+    pub batch_size: usize,
     pub topic: String,
     pub brokers: String,
     #[serde(rename="compression.codec")]

@@ -34,8 +34,14 @@ impl Service for FrameService {
             peer_addr: req.peer_addr.ip().to_string(),
             time_spec : time::get_time(),
             data: req.data,
+            data_type: 0,
         };
-        self.sender.send(event).unwrap();
+
+        let rt = self.sender.try_send(event).is_err();
+        if rt {
+            error!("try send event to buffer error");
+        }
+//        self.sender.send(event).unwrap();
 
         // In this case, the response is immediate.
         Box::new(future::ok("".to_string()))

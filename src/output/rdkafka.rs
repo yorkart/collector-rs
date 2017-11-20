@@ -1,10 +1,9 @@
-
 use std::sync::Arc;
 use std::sync::mpsc;
 use std::sync::mpsc::RecvTimeoutError;
 
-use bytes::BigEndian;
-use bytes::ByteOrder;
+//use bytes::BigEndian;
+//use bytes::ByteOrder;
 
 use futures::Future;
 
@@ -21,7 +20,7 @@ use super::common::PackageTypeMap;
 pub fn worker(rx: mpsc::Receiver<Result<core::Event, RecvTimeoutError>>, config_center: Arc<core::config::ConfigCenter>) {
     let config = config_center.get();
 
-    let mut kafka_producer = RDKafkaProducer::new(config.kafka);
+    let mut kafka_producer = RDKafkaProducer::new(config.kafka, config.env_index);
 
     loop {
         let rt = rx.recv().unwrap();
@@ -31,13 +30,14 @@ pub fn worker(rx: mpsc::Receiver<Result<core::Event, RecvTimeoutError>>, config_
         };
 
         match result {
-            Ok(len) => {}, // info!("kafka send batch {:?} / {}", len, kafka_producer.get_counter()),
+            Ok(/*len*/ _) => {} // info!("kafka send batch {:?} / {}", len, kafka_producer.get_counter()),
             Err(e) => error!("kafka send batch error {:?}", e),
         }
     }
 }
 
 struct RDKafkaProducer<'a> {
+    env_index: usize,
     producer: FutureProducer<EmptyContext>,
     queue: Vec<DeliveryFuture>,
     capacity: usize,
@@ -45,8 +45,8 @@ struct RDKafkaProducer<'a> {
     package_type_map_topic: PackageTypeMap<'a>,
 }
 
-impl <'a> RDKafkaProducer<'a> {
-    fn new(config: core::config::KafkaConfig) -> RDKafkaProducer<'a> {
+impl<'a> RDKafkaProducer<'a> {
+    fn new(config: core::config::KafkaConfig, env_index: usize) -> RDKafkaProducer<'a> {
         let mut _producer = ClientConfig::new()
             .set("bootstrap.servers", &config.brokers)
             .set("produce.offset.report", "true")
@@ -56,35 +56,44 @@ impl <'a> RDKafkaProducer<'a> {
             .create::<FutureProducer<_>>()
             .expect("Producer creation error");
 
-        let _capacity = 10;
-        let _queue = Vec::with_capacity(_capacity);
+//        let _capacity = 10;
+        let _queue = Vec::with_capacity(config.batch_size);
 
         RDKafkaProducer {
+            env_index,
             producer: _producer,
             queue: _queue,
-            capacity: _capacity,
+            capacity: config.batch_size,
             counter: 0,
             package_type_map_topic: PackageTypeMap::new(),
         }
     }
 
-    fn send_batch(&mut self, event: core::Event) -> Result<usize, KafkaError> {
+    fn send_batch(&mut self, mut event: core::Event) -> Result<usize, KafkaError> {
+        self.counter = self.counter + 1;
+
         let mut data = event.data;
         let mills = utils::get_mills(event.time_spec);
 
-        let mut header = data.split_to(9);
+        if event.data_type == 0 {
+            let mut header = data.split_to(9);
 
-        let message_id_buf = header.split_to(4);
-        let type_buf = header.split_to(1);
+            let _ /*message_id_buf*/ = header.split_to(4);
+            let type_buf = header.split_to(1);
 
-        let message_id = BigEndian::read_i32(message_id_buf.as_ref());
-        let data_type = type_buf.as_ref().to_vec()[0] as usize;
+            //            let message_id = BigEndian::read_i32(message_id_buf.as_ref());
+            let data_type = type_buf.as_ref().to_vec()[0] as usize;
 
-        let key = format!("{}#{}#{}#{}", mills, 5, &event.peer_addr, data_type);
-//        info!("event key: {}, messageId: {}", &key, message_id);
+            event.data_type = data_type;
+        }
+
+        let data_type = event.data_type;
+
+        let key = format!("{}#{}#{}#{}", mills, self.env_index, &event.peer_addr, data_type);
+        //        info!("event key: {}, messageId: {}", &key, message_id);
 
         let _topic = self.package_type_map_topic.get_topic(data_type);
-//        info!("event topic: {}, data_type: {}", _topic, data_type);
+        //        info!("event topic: {}, data_type: {}", _topic, data_type);
 
         let delivery_future = self.producer.send_copy(
             &_topic.to_owned(),
@@ -106,7 +115,7 @@ impl <'a> RDKafkaProducer<'a> {
                 for df in queue {
                     let delivery_status = df.wait().unwrap();
                     match delivery_status {
-                        Ok((_, _)) => {},
+                        Ok((_, _)) => {}
                         Err((err, msg)) => error!("send error: {:?}, message: {:?}", err, msg),
                     }
                 }
@@ -118,6 +127,7 @@ impl <'a> RDKafkaProducer<'a> {
             let queue = &mut self.queue;
             if flush {
                 queue.clear();
+                info!("flush kafka batch: {} / {}", len, self.counter);
             }
         }
 
@@ -140,12 +150,14 @@ impl <'a> RDKafkaProducer<'a> {
         {
             let queue = &mut self.queue;
             queue.clear();
+
+            info!("flush kafka batch: {} / {}", len, self.counter);
         }
 
         Ok(len)
     }
 
-    fn get_counter(&mut self) -> usize {
-        self.counter
-    }
+//    fn get_counter(&mut self) -> usize {
+//        self.counter
+//    }
 }

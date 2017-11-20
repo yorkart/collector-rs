@@ -16,7 +16,7 @@ extern crate serde_derive;
 extern crate serde_yaml;
 
 extern crate tokio_core;
-//#[macro_use]
+#[macro_use]
 extern crate tokio_io;
 extern crate tokio_service;
 extern crate tokio_proto;
