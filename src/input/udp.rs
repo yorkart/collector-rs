@@ -64,32 +64,32 @@ pub fn udp_serve(tx: SyncSender<core::Event>,  config_center: &Arc<core::config:
     }).unwrap();
 }
 
-#[cfg(test)]
-mod tests {
-    use std::thread;
-    use std::sync::mpsc;
-    use std::sync::mpsc::{SyncSender, Receiver};
-
-    use super::*;
-
-    #[test]
-    pub fn udp_serve_test() {
-        let (tx, rx): (SyncSender<core::Event>, Receiver<core::Event>) = mpsc::sync_channel(100000);
-
-        thread::spawn(move || {
-            loop {
-                match rx.recv() {
-                    Ok(event) => {
-                        println!("recv {}", event.data.len());
-
-                        for x in event.data {
-                            print!("{},", x);
-                        }
-                    },
-                    Err(e) => println!("error {:?}", e),
-                };
-            }
-        });
-        udp_serve(tx);
-    }
-}
+//#[cfg(test)]
+//mod tests {
+//    use std::thread;
+//    use std::sync::mpsc;
+//    use std::sync::mpsc::{SyncSender, Receiver};
+//
+//    use super::*;
+//
+//    #[test]
+//    pub fn udp_serve_test() {
+//        let (tx, rx): (SyncSender<core::Event>, Receiver<core::Event>) = mpsc::sync_channel(100000);
+//
+//        thread::spawn(move || {
+//            loop {
+//                match rx.recv() {
+//                    Ok(event) => {
+//                        println!("recv {}", event.data.len());
+//
+//                        for x in event.data {
+//                            print!("{},", x);
+//                        }
+//                    },
+//                    Err(e) => println!("error {:?}", e),
+//                };
+//            }
+//        });
+//        udp_serve(tx);
+//    }
+//}
