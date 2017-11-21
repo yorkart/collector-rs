@@ -2,7 +2,16 @@
 # 1:product, 2:stage, 3:uat, 4:qa, 5:test
 env.index: 5
 
+channel.buffer.size: 100000
+
+udp.addr: "0.0.0.0:36365"
+# 9 * 1024 * 1024
+udp.frame.max.size: 9437184
+
+tcp.addr: "0.0.0.0:36366"
+tcp.frame.max.size: 9437184
 tcp.threads: 5
+
 output.workers: 5
 
 kafka:

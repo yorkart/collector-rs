@@ -1,5 +1,6 @@
 
 use std::io;
+use std::sync::Arc;
 use std::sync::mpsc::SyncSender;
 use std::convert::From;
 
@@ -46,8 +47,9 @@ impl Future for Server {
     }
 }
 
-pub fn udp_serve(tx: SyncSender<core::Event>) {
-    let addr = "0.0.0.0:36365".parse().unwrap();
+pub fn udp_serve(tx: SyncSender<core::Event>,  config_center: &Arc<core::config::ConfigCenter>) {
+    let config = config_center.get();
+    let addr = config.udp_addr.parse().unwrap();
 
     let mut core = Core::new().unwrap();
     let handle = core.handle();
@@ -57,7 +59,7 @@ pub fn udp_serve(tx: SyncSender<core::Event>) {
 
     core.run(Server{
         socket,
-        buf: vec![0; 1024*1024 * 9],
+        buf: vec![0; config.udp_frame_max_size],
         tx,
     }).unwrap();
 }

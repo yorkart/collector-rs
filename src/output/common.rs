@@ -1,21 +1,4 @@
-#[allow(dead_code)]
-
-pub const BASE_V2: usize = 64;
-
-pub const AGENT_INFO: usize = 1;
-pub const AGENT_INFO_V2: usize = AGENT_INFO + BASE_V2;
-
-pub const METADATA_API: usize = 8;
-pub const METADATA_API_V2: usize = METADATA_API + BASE_V2;
-
-pub const AGENT_STAT: usize = 9;
-pub const AGENT_STAT_V2: usize = AGENT_STAT + BASE_V2;
-
-pub const TRACE_ORIGIN: usize = 20;
-pub const TRACE_ORIGIN_V2: usize = TRACE_ORIGIN + BASE_V2;
-
-//pub static  TRACE_SNAPPY : i32 = 21;
-//pub static  TRACE_SNAPPY_V2 : i32 = TRACE_SNAPPY + BASE_V2;
+use core;
 
 pub struct PackageTypeMap<'a> {
     map : Vec<&'a str>,
@@ -26,17 +9,17 @@ impl <'a> PackageTypeMap<'a> {
         let mut package_type_vec = Vec::with_capacity(128);
         (0..128).for_each(|_| package_type_vec.push(""));
 
-        package_type_vec[AGENT_INFO] = "apm-agent-info";
-        package_type_vec[AGENT_INFO_V2] = "apm-agent-info";
+        package_type_vec[core::AGENT_INFO] = "apm-agent-info";
+        package_type_vec[core::AGENT_INFO_V2] = "apm-agent-info";
 
-        package_type_vec[METADATA_API] = "apm-metadata";
-        package_type_vec[METADATA_API_V2] = "apm-metadata";
+        package_type_vec[core::METADATA_API] = "apm-metadata";
+        package_type_vec[core::METADATA_API_V2] = "apm-metadata";
 
-        package_type_vec[AGENT_STAT] = "apm-stat";
-        package_type_vec[AGENT_STAT_V2] = "apm-stat";
+        package_type_vec[core::AGENT_STAT] = "apm-stat";
+        package_type_vec[core::AGENT_STAT_V2] = "apm-stat";
 
-        package_type_vec[TRACE_ORIGIN] = "apm-trace";
-        package_type_vec[TRACE_ORIGIN_V2] = "apm-trace";
+        package_type_vec[core::TRACE_ORIGIN] = "apm-trace";
+        package_type_vec[core::TRACE_ORIGIN_V2] = "apm-trace";
 
         PackageTypeMap{
             map: package_type_vec,

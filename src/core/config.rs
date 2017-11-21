@@ -4,10 +4,25 @@
 pub struct Config {
     #[serde(rename="env.index")]
     pub env_index: usize,
+
+    #[serde(rename="channel.buffer.size")]
+    pub channel_buffer_size: usize,
+
+    #[serde(rename="udp.addr")]
+    pub udp_addr: String,
+    #[serde(rename="udp.frame.max.size")]
+    pub udp_frame_max_size: usize,
+
+    #[serde(rename="tcp.addr")]
+    pub tcp_addr: String,
+    #[serde(rename="tcp.frame.max.size")]
+    pub tcp_frame_max_size: usize,
     #[serde(rename="tcp.threads")]
     pub tcp_threads: usize,
+
     #[serde(rename="output.workers")]
     pub out_workers: usize,
+
     pub kafka: KafkaConfig,
 }
 
